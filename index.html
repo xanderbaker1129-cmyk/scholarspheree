@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Zenoa</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#08090d;
+  --bg2:#0d0f18;
+  --bg3:#111420;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
+  --accent:#7c5cf6;
+  --accent2:#a07ff0;
+  --text:rgba(255,255,255,0.85);
+  --muted:rgba(255,255,255,0.35);
+  --dim:rgba(255,255,255,0.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;min-height:100vh;cursor:none;}
+
+/* CURSOR */
+#cursor{position:fixed;width:8px;height:8px;background:#fff;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:difference;}
+#cursor-ring{position:fixed;width:32px;height:32px;border:1px solid rgba(255,255,255,0.3);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width 0.2s,height 0.2s,border-color 0.2s;}
+
+/* BG */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+body::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");opacity:0.4;}
+
+/* LAYOUT */
+.wrap{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:0 32px;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:56px;background:rgba(8,9,13,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;}
+.nav-inner{width:100%;max-width:1100px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;letter-spacing:3px;color:rgba(255,255,255,0.9);text-transform:uppercase;text-decoration:none;}
+.nav-logo span{color:var(--accent);}
+.nav-links{display:flex;gap:28px;list-style:none;}
+.nav-links a{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--muted);text-decoration:none;text-transform:uppercase;transition:color 0.15s;cursor:none;}
+.nav-links a:hover{color:rgba(255,255,255,0.9);}
+.nav-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:1px;}
+
+/* HERO */
+#hero{min-height:100vh;display:flex;align-items:center;padding-top:56px;position:relative;}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;width:100%;}
+.hero-eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--accent);}
+.hero-name{font-size:clamp(36px,5vw,62px);font-weight:800;line-height:0.95;letter-spacing:-1.5px;margin-bottom:8px;}
+.hero-name .line2{-webkit-text-stroke:1px rgba(255,255,255,0.25);color:transparent;display:block;}
+.hero-sub{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);line-height:1.8;margin-top:24px;max-width:380px;}
+.hero-sub .hl{color:var(--accent2);}
+.hero-actions{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap;}
+.btn-primary{padding:11px 24px;border-radius:8px;background:var(--accent);border:none;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:none;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:background 0.15s,transform 0.12s;}
+.btn-primary:hover{background:#8d6ef7;transform:translateY(-1px);}
+.btn-ghost{padding:11px 24px;border-radius:8px;background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;cursor:none;text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:border-color 0.15s,color 0.15s,transform 0.12s;}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.3);color:rgba(255,255,255,0.8);transform:translateY(-1px);}
+
+/* HERO CARD */
+.hero-right{position:relative;display:flex;justify-content:center;}
+.hero-card{width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;overflow:hidden;}
+.hero-card::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;background:radial-gradient(circle,rgba(124,92,246,0.15),transparent 70%);pointer-events:none;}
+.hc-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:16px;}
+.hc-stat{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.hc-stat:last-child{border-bottom:none;}
+.hc-stat-name{font-size:12px;color:var(--muted);}
+.hc-stat-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,0.7);}
+.hc-stat-val.green{color:#4ade80;}
+.hc-stat-val.purple{color:var(--accent2);}
+.hc-bar-wrap{margin-top:16px;}
+.hc-bar-label{display:flex;justify-content:space-between;margin-bottom:6px;}
+.hc-bar-label span{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);}
+.hc-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin-bottom:8px;}
+.hc-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:barGrow 1.4s cubic-bezier(0.4,0,0.2,1) forwards;}
+@keyframes barGrow{from{width:0;}to{width:var(--w);}}
+
+/* SECTIONS */
+section{padding:100px 0;}
+.section-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.section-label::before{content:'';width:20px;height:1px;background:var(--accent);}
+.section-title{font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin-bottom:48px;}
+.divider{height:1px;background:var(--border);}
+
+/* LINK CARD */
+.link-card{display:flex;align-items:center;gap:20px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px 28px;text-decoration:none;color:inherit;cursor:none;max-width:480px;position:relative;overflow:hidden;transition:background 0.15s,border-color 0.15s,transform 0.15s;}
+.link-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(124,92,246,0.08),transparent 60%);opacity:0;transition:opacity 0.2s;pointer-events:none;}
+.link-card:hover{background:var(--bg3);border-color:rgba(124,92,246,0.35);transform:translateY(-3px);}
+.link-card:hover::after{opacity:1;}
+.lc-icon{font-size:32px;flex-shrink:0;}
+.lc-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+.lc-url{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+.lc-arrow{margin-left:auto;font-size:20px;color:var(--accent);opacity:0.5;transition:opacity 0.15s,transform 0.15s;}
+.link-card:hover .lc-arrow{opacity:1;transform:translateX(4px);}
+
+/* BROWSER */
+#browser-section{padding:100px 0;}
+.browser-shell{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg2);box-shadow:0 0 60px rgba(124,92,246,0.06);}
+
+.browser-chrome{background:var(--bg3);border-bottom:1px solid var(--border);display:flex;flex-direction:column;padding:10px 14px 0;}
+
+.bc-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;}
+.bc-dots{display:flex;gap:6px;flex-shrink:0;}
+.bc-dot{width:10px;height:10px;border-radius:50%;}
+.bc-dot.r{background:#ff5f56;}
+.bc-dot.y{background:#ffbd2e;}
+.bc-dot.g{background:#27c93f;}
+.bc-input-wrap{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 12px;cursor:text;}
+#bc-url-input{flex:1;background:transparent;border:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.7);cursor:none;}
+#bc-url-input::placeholder{color:var(--dim);}
+.bc-go{padding:4px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;flex-shrink:0;transition:background 0.12s;}
+.bc-go:hover{background:#8d6ef7;}
+
+.bc-engines{display:flex;align-items:center;gap:7px;padding:8px 0 10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.bc-engine-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;flex-shrink:0;margin-right:2px;}
+.eng-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.eng-btn:hover{border-color:var(--border2);color:rgba(255,255,255,0.75);}
+.eng-btn.active{border-color:var(--accent);background:rgba(124,92,246,0.18);color:rgba(255,255,255,0.92);}
+.eng-icon{font-size:12px;line-height:1;}
+
+.browser-viewport{width:100%;height:620px;background:#000;position:relative;}
+#main-browser-frame{width:100%;height:100%;border:none;display:block;}
+#browser-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);text-align:center;pointer-events:none;}
+#browser-placeholder .ph-icon{font-size:40px;opacity:0.4;}
+#browser-placeholder .ph-text{font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.4;}
+#browser-blocked-inline{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);text-align:center;padding:40px;}
+#browser-blocked-inline.show{display:flex;}
+#browser-blocked-inline .bl-icon{font-size:44px;}
+#browser-blocked-inline .bl-title{font-size:18px;font-weight:700;}
+#browser-blocked-inline .bl-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);max-width:360px;line-height:1.7;}
+#browser-blocked-inline a{margin-top:6px;padding:9px 20px;border-radius:8px;background:rgba(124,92,246,0.2);border:1px solid rgba(124,92,246,0.4);color:var(--accent2);font-family:'JetBrains Mono',monospace;font-size:11px;text-decoration:none;cursor:pointer;transition:background 0.12s;}
+#browser-blocked-inline a:hover{background:rgba(124,92,246,0.35);}
+
+.bc-bookmarks{display:flex;align-items:center;gap:7px;padding:8px 0 10px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.bc-bm-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;flex-shrink:0;margin-right:2px;}
+.bm-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.bm-btn:hover{border-color:var(--accent);background:rgba(124,92,246,0.18);color:rgba(255,255,255,0.92);}
+.bm-icon{font-size:12px;line-height:1;}
+
+/* ABOUT */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;}
+.about-text{font-size:15px;line-height:1.9;color:rgba(255,255,255,0.55);}
+.about-text p{margin-bottom:16px;}
+.about-text .hl{color:rgba(255,255,255,0.85);font-weight:600;}
+.about-right{display:flex;flex-direction:column;gap:12px;}
+.skill-row{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;}
+.skill-icon{font-size:18px;flex-shrink:0;}
+.skill-info{flex:1;}
+.skill-name{font-size:12px;font-weight:600;margin-bottom:4px;}
+.skill-bar{height:2px;background:rgba(255,255,255,0.06);border-radius:1px;overflow:hidden;}
+.skill-fill{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--accent),var(--accent2));animation:barGrow 1.6s ease forwards;}
+
+/* SOCIALS */
+.socials-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+.social-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;color:inherit;cursor:none;transition:background 0.15s,border-color 0.15s,transform 0.15s;display:flex;align-items:center;gap:14px;}
+.social-card:hover{background:var(--bg3);border-color:var(--border2);transform:translateY(-2px);}
+.social-icon{font-size:22px;flex-shrink:0;}
+.social-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.social-handle{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);}
+
+/* FOOTER */
+footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;}
+.footer-logo{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
+.footer-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(255,255,255,0.1);}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease,transform 0.6s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){
+  .hero-grid,.about-grid{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .wrap{padding:0 20px;}
+  .browser-viewport{height:420px;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">Ze<span>noa</span></a>
+    <ul class="nav-links">
+      <li><a href="#browser-section">Browser</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#socials">Links</a></li>
+    </ul>
+    <div class="nav-tag">v2.0</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-left">
+        <div class="hero-eyebrow">Welcome</div>
+        <div class="hero-name">
+          Ze<br>
+          <span class="line2">noa</span>
+        </div>
+        <p class="hero-sub">
+          A personal hub for <span class="hl">browsing</span>, projects, and links.<br>
+          Dark. Fast. No fluff.
+        </p>
+        <div class="hero-actions">
+          <a href="#browser-section" class="btn-primary">🌐 Open Browser</a>
+          <a href="#socials" class="btn-ghost">Social Links →</a>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="hc-label">// user.profile</div>
+          <div class="hc-stat">
+            <span class="hc-stat-name">handle</span>
+            <span class="hc-stat-val purple">zenoa</span>
+          </div>
+          <div class="hc-stat">
+            <span class="hc-stat-name">status</span>
+            <span class="hc-stat-val green">● online</span>
+          </div>
+          <div class="hc-stat">
+            <span class="hc-stat-name">vibe</span>
+            <span class="hc-stat-val">dark mode only</span>
+          </div>
+          <div class="hc-bar-wrap">
+            <div class="hc-bar-label"><span>gaming</span><span>100%</span></div>
+            <div class="hc-bar"><div class="hc-bar-fill" style="--w:100%"></div></div>
+            <div class="hc-bar-label"><span>chill</span><span>85%</span></div>
+            <div class="hc-bar"><div class="hc-bar-fill" style="--w:85%;animation-delay:0.2s"></div></div>
+            <div class="hc-bar-label"><span>chaos</span><span>60%</span></div>
+            <div class="hc-bar"><div class="hc-bar-fill" style="--w:60%;animation-delay:0.4s"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUICK LINK -->
+<section id="links">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Quick Access</div>
+      <div class="section-title">Go Here</div>
+    </div>
+    <div class="reveal">
+      <a class="link-card" href="https://sites.google.com/view/tungshaur/home" target="_blank" rel="noopener">
+        <div class="lc-icon">🌐</div>
+        <div class="lc-info">
+          <div class="lc-name">Tungshaur Site</div>
+          <div class="lc-url">sites.google.com/view/tungshaur/home</div>
+        </div>
+        <div class="lc-arrow">→</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- BROWSER -->
+<section id="browser-section">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Browser</div>
+      <div class="section-title">Zenoa Proxy</div>
+    </div>
+    <div class="reveal">
+      <div class="browser-shell">
+        <div class="browser-chrome">
+
+          <!-- dots + address + launch -->
+          <div class="bc-top">
+            <div class="bc-dots">
+              <div class="bc-dot r"></div>
+              <div class="bc-dot y"></div>
+              <div class="bc-dot g"></div>
+            </div>
+            <div class="bc-input-wrap">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);">🔒</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);">nikehub.org/algebra</span>
+            </div>
+            <button class="bc-go" onclick="launchZenoa()">Launch Zenoa</button>
+          </div>
+
+        </div><!-- /browser-chrome -->
+
+        <div class="browser-viewport">
+          <div id="browser-placeholder">
+            <div class="ph-icon">🌐</div>
+            <div class="ph-text">// click Launch Zenoa to open the proxy</div>
+          </div>
+          <iframe id="main-browser-frame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation"
+            style="display:none;">
+          </iframe>
+          <div id="browser-blocked-inline">
+            <div class="bl-icon">🚫</div>
+            <div class="bl-title">Site blocked embedding</div>
+            <div class="bl-sub">This site won't load inside the browser due to its own security restrictions. You can open it in a real tab instead.</div>
+            <a id="blocked-link-inline" href="#" target="_blank" rel="noopener">Open in new tab →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">About</div>
+      <div class="section-title">Who is this</div>
+    </div>
+    <div class="about-grid reveal">
+      <div class="about-text">
+        <p>Hey — I'm <span class="hl">Zenoa</span>. This is my personal corner of the internet. I play games, make stuff, and keep it dark-themed.</p>
+        <p>This site is a hub for the links I share, and whatever else ends up here. No light mode. No ads. No cringe.</p>
+        <p>Built to be fast and simple — just what matters.</p>
+      </div>
+      <div class="about-right">
+        <div class="skill-row">
+          <div class="skill-icon">🎮</div>
+          <div class="skill-info">
+            <div class="skill-name">Gaming</div>
+            <div class="skill-bar"><div class="skill-fill" style="--w:100%"></div></div>
+          </div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-icon">🌐</div>
+          <div class="skill-info">
+            <div class="skill-name">Web stuff</div>
+            <div class="skill-bar"><div class="skill-fill" style="--w:75%;animation-delay:0.15s"></div></div>
+          </div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-icon">🎵</div>
+          <div class="skill-info">
+            <div class="skill-name">Music</div>
+            <div class="skill-bar"><div class="skill-fill" style="--w:65%;animation-delay:0.3s"></div></div>
+          </div>
+        </div>
+        <div class="skill-row">
+          <div class="skill-icon">🌙</div>
+          <div class="skill-info">
+            <div class="skill-name">Dark mode</div>
+            <div class="skill-bar"><div class="skill-fill" style="--w:100%;animation-delay:0.45s"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SOCIALS -->
+<section id="socials">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="section-label">Links</div>
+      <div class="section-title">Find me</div>
+    </div>
+    <div class="socials-grid reveal">
+      <a class="social-card" href="https://discord.gg/h5C36zuDaa" target="_blank" rel="noopener">
+        <div class="social-icon">💬</div>
+        <div class="social-info">
+          <div class="social-name">Discord</div>
+          <div class="social-handle">discord.gg/h5C36zuDaa</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Zenoa</div>
+  <div class="footer-sub">// no rights reserved — built different</div>
+</footer>
+
+<script>
+// ── CURSOR ──────────────────────────────────────────────────
+var cur=document.getElementById('cursor');
+var ring=document.getElementById('cursor-ring');
+var mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',function(e){
+  mx=e.clientX;my=e.clientY;
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+});
+(function animRing(){
+  rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;
+  ring.style.left=rx+'px';ring.style.top=ry+'px';
+  requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a,button,.link-card,.social-card').forEach(function(el){
+  el.addEventListener('mouseenter',function(){ring.style.width='48px';ring.style.height='48px';ring.style.borderColor='rgba(124,92,246,0.5)';});
+  el.addEventListener('mouseleave',function(){ring.style.width='32px';ring.style.height='32px';ring.style.borderColor='rgba(255,255,255,0.3)';});
+});
+
+// ── CANVAS BG ───────────────────────────────────────────────
+(function(){
+  var c=document.getElementById('bg-canvas');
+  var ctx=c.getContext('2d');
+  var t=0;
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  window.addEventListener('resize',resize);resize();
+  var stars=[];
+  for(var i=0;i<200;i++) stars.push({x:Math.random(),y:Math.random(),r:Math.random()*0.8+0.2,a:Math.random()*0.4+0.1,sp:Math.random()*0.3+0.08});
+  var bands=[
+    {cx:0.15,cy:0.3,rx:0.5,ry:0.25,col:'rgba(15,30,110,0.14)',ph:0},
+    {cx:0.85,cy:0.7,rx:0.45,ry:0.3,col:'rgba(50,10,100,0.12)',ph:1.6},
+    {cx:0.5,cy:0.5,rx:0.35,ry:0.2,col:'rgba(6,60,80,0.08)',ph:3},
+  ];
+  function draw(){
+    var w=c.width,h=c.height;
+    ctx.fillStyle='#08090d';ctx.fillRect(0,0,w,h);
+    bands.forEach(function(b){
+      var gx=(b.cx+Math.sin(t*0.15+b.ph)*0.05)*w;
+      var gy=(b.cy+Math.cos(t*0.1+b.ph)*0.04)*h;
+      var gr=ctx.createRadialGradient(gx,gy,0,gx,gy,Math.max(b.rx*w,b.ry*h));
+      gr.addColorStop(0,b.col);gr.addColorStop(1,'transparent');
+      ctx.fillStyle=gr;
+      ctx.beginPath();ctx.ellipse(gx,gy,b.rx*w,b.ry*h,0,0,Math.PI*2);ctx.fill();
+    });
+    stars.forEach(function(s){
+      ctx.globalAlpha=Math.max(0,Math.min(1,s.a+Math.sin(t*s.sp+s.x*9)*0.12));
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill();
+    });
+    ctx.globalAlpha=1;t+=0.014;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── BROWSER ─────────────────────────────────────────────────
+// ── ZENOA PROXY ──────────────────────────────────────────────
+var bFrame       = document.getElementById('main-browser-frame');
+var bPlaceholder = document.getElementById('browser-placeholder');
+var bBlocked     = document.getElementById('browser-blocked-inline');
+var bBlockedLink = document.getElementById('blocked-link-inline');
+
+function launchZenoa(){
+  var url = 'https://nikehub.org/algebra';
+  bPlaceholder.style.display = 'none';
+  bBlocked.classList.remove('show');
+  bFrame.style.display = 'block';
+  bFrame.src = url;
+  bBlockedLink.href = url;
+  var timer = setTimeout(function(){
+    try{
+      var doc = bFrame.contentDocument || bFrame.contentWindow.document;
+      if(!doc || !doc.body || doc.body.innerHTML.trim()==='') showBlocked();
+    } catch(e){}
+  }, 7000);
+  bFrame.onload = function(){
+    clearTimeout(timer);
+    try{
+      var doc = bFrame.contentDocument || bFrame.contentWindow.document;
+      if(!doc || !doc.body || doc.body.innerHTML.trim()==='') showBlocked();
+    } catch(e){}
+  };
+  bFrame.onerror = function(){ clearTimeout(timer); showBlocked(); };
+}
+
+function showBlocked(){
+  bFrame.style.display = 'none';
+  bBlocked.classList.add('show');
+}
+
+// ── SCROLL REVEAL ────────────────────────────────────────────
+var obs = new IntersectionObserver(function(entries){
+  entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(function(el){ obs.observe(el); });
+</script>
+</body>
+</html>

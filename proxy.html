@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Zenoa Network</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#08090d;overflow:hidden;}
+#topbar{
+  height:48px;
+  background:#0d0f18;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  flex-shrink:0;
+  position:relative;z-index:10;
+}
+.tb-logo{
+  font-family:"Syne",sans-serif;font-size:16px;font-weight:800;
+  color:#fff;letter-spacing:-0.5px;
+}
+.tb-logo span{color:#7c5cf6;}
+.tb-tag{
+  font-family:"JetBrains Mono",monospace;font-size:9px;
+  letter-spacing:3px;color:rgba(255,255,255,0.2);text-transform:uppercase;
+}
+.tb-dot{
+  width:8px;height:8px;border-radius:50%;background:#4ade80;
+  box-shadow:0 0 8px rgba(74,222,128,0.6);
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+#frame-wrap{height:calc(100vh - 48px);position:relative;}
+iframe{width:100%;height:100%;border:none;display:block;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div class="tb-logo">Zenoa<span> Network</span></div>
+  <div class="tb-tag">// proxy</div>
+  <div class="tb-dot"></div>
+</div>
+<div id="frame-wrap">
+  <iframe
+    src="https://nikehub.org/algebra"
+    allow="autoplay; fullscreen; clipboard-write; camera; microphone; storage-access"
+    allowfullscreen
+    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-top-navigation-by-user-activation allow-storage-access-by-user-activation"
+  ></iframe>
+</div>
+</body>
+</html>
